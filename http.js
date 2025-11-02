@@ -33,7 +33,7 @@ export default class HTTPClient {
      * Performs a GET request.
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<*>} The response in its appropriate type.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     GET(endpoint, headers) {
         return this.request('GET', endpoint, undefined, headers);
@@ -44,7 +44,7 @@ export default class HTTPClient {
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {*} body - The body of the request.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<*>} The response in its appropriate type.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     POST(endpoint, body, headers) {
         return this.request('POST', endpoint, body, headers);
@@ -55,7 +55,7 @@ export default class HTTPClient {
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {*} body - The body of the request.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<*>} The response in its appropriate type.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     PUT(endpoint, body, headers) {
         return this.request('PUT', endpoint, body, headers);
@@ -65,7 +65,7 @@ export default class HTTPClient {
      * Performs a DELETE request.
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<*>} The response in its appropriate type.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     DELETE(endpoint, headers) {
         return this.request('DELETE', endpoint, undefined, headers);
@@ -76,7 +76,7 @@ export default class HTTPClient {
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {*} body - The body of the request.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<*>} The response in its appropriate type.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     PATCH(endpoint, body, headers) {
         return this.request('PATCH', endpoint, body, headers);
@@ -86,7 +86,7 @@ export default class HTTPClient {
      * Performs a HEAD request to retrieve only the headers of a response.
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {HeadersInit} [headers] - Optional headers for the request.
-     * @returns {Promise<Headers>} The headers from the response.
+     * @returns {Promise<Response>} The Response object from the fetch call.
      */
     HEAD(endpoint, headers) {
         return this.headRequest('HEAD', endpoint, headers);
@@ -350,7 +350,7 @@ export default class HTTPClient {
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {*} [body] - The body of the request.
      * @param {HeadersInit} [headers={}] - The headers for the request.
-     * @returns {Promise<*>} The processed response data.
+     * @returns {Promise<Response>} The fetch Response object, extended with a 'data' property holding the parsed body.
      * @throws {Error} Throws an error if the fetch call fails or is unhandled.
      */
     async request(method, endpoint, body, headers = {}) {
@@ -364,11 +364,17 @@ export default class HTTPClient {
         try {
             console.info(`Starting ${method} request to ${url}`);
             const response = await fetch(url, options);
-            await this.handleStatusCode(response);
             if (response.status === 204) {
-                return;
+                return response;
             }
-            return this.handleContentType(response);
+            // Parse the content
+            const data = await this.handleContentType(response);
+            
+            // Attach the parsed data as a new property
+            response.data = data;
+
+            // Return the extended response object
+            return response;
         } catch (error) {
             console.error(`Failed ${method} request to ${url}: ${error.message}`);
             throw error;
@@ -380,7 +386,7 @@ export default class HTTPClient {
      * @param {string} method - The HTTP method (should be 'HEAD').
      * @param {string} endpoint - The endpoint to send the request to.
      * @param {HeadersInit} [headers={}] - The headers for the request.
-     * @returns {Promise<Headers>} The headers from the response.
+     * @returns {Promise<Response>} The fetch Response object.
      * @throws {Error} Throws an error if the fetch call fails or is unhandled.
      */
     async headRequest(method, endpoint, headers = {}) {
@@ -394,7 +400,7 @@ export default class HTTPClient {
             console.info(`Starting ${method} request to ${url}`);
             const response = await fetch(url, options);
             await this.handleStatusCode(response);
-            return response.headers;
+            return response;
         } catch (error) {
             console.error(`Failed ${method} request to ${url}: ${error.message}`);
             throw error;
